@@ -1,0 +1,61 @@
+{
+  "name": "@adminforth/oauth-adapter-telegram",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [
+    "adminforth",
+    "telegram",
+    "oauth",
+    "openid-connect"
+  ],
+  "author": "DevForth (https://devforth.io)",
+  "license": "MIT",
+  "description": "AdminForth OAuth adapter for Telegram Login OIDC.",
+  "homepage": "https://adminforth.dev/docs/tutorial/Adapters/telegram-oauth-adapter/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devforth/adminforth-telegram-oauth-adapter.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "semantic-release": "^24.2.1",
+    "semantic-release-slack-bot": "^4.0.2",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "adminforth": ">=2.60.0"
+  },
+  "release": {
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/npm",
+      "@semantic-release/github",
+      [
+        "semantic-release-slack-bot",
+        {
+          "packageName": "@adminforth/oauth-adapter-telegram",
+          "notifyOnSuccess": true,
+          "notifyOnFail": true,
+          "slackIcon": ":package:",
+          "markdownReleaseNotes": true
+        }
+      ]
+    ],
+    "branches": [
+      "main",
+      {
+        "name": "next",
+        "prerelease": true
+      }
+    ]
+  }
+}
