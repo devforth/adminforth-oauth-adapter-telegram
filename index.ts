@@ -1,17 +1,8 @@
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
-import type { OAuth2Adapter } from "adminforth";
+import type { OAuth2Adapter, OAuth2UserInfo } from "adminforth";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
-type OAuth2UserInfoLocal = {
-  email: string;
-  provider?: string;
-  subject?: string;
-  phone?: string;
-  meta?: Record<string, any>;
-  fullName?: string;
-  profilePictureUrl?: string;
-  externalUserId?: string | number | null;
-};
 
 type TelegramIdTokenClaims = {
   iss: string;
@@ -37,6 +28,8 @@ type TelegramOauthAdapterOptions = {
 const TELEGRAM_AUTH_URL = "https://oauth.telegram.org/auth";
 const TELEGRAM_TOKEN_URL = "https://oauth.telegram.org/token";
 const TELEGRAM_ISSUER = "https://oauth.telegram.org";
+const TELEGRAM_JWKS = createRemoteJWKSet(new URL("https://oauth.telegram.org/.well-known/jwks.json"));
+const TELEGRAM_ID_TOKEN_ALGORITHMS = ["RS256", "ES256", "EdDSA", "ES256K"];
 const DEFAULT_SCOPES = ["openid", "profile"];
 
 function base64UrlEncode(input: Buffer) {
@@ -53,11 +46,6 @@ function createCodeChallenge(codeVerifier: string) {
 
 function createDefaultCodeVerifier(clientID: string, clientSecret: string) {
   return base64UrlEncode(createHash("sha256").update(`${clientID}:${clientSecret}`).digest());
-}
-
-function decodeJwtPayload<T>(token: string): T {
-  const [, payload] = token.split(".");
-  return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
 }
 
 export default class AdminForthAdapterTelegramOauth2 implements OAuth2Adapter {
@@ -90,7 +78,7 @@ export default class AdminForthAdapterTelegramOauth2 implements OAuth2Adapter {
     return `${TELEGRAM_AUTH_URL}?${params.toString()}`;
   }
 
-  async getTokenFromCode(code: string, redirect_uri: string): Promise<OAuth2UserInfoLocal> {
+  async getTokenFromCode(code: string, redirect_uri: string): Promise<OAuth2UserInfo> {
     const tokenResponse = await fetch(TELEGRAM_TOKEN_URL, {
       method: "POST",
       headers: {
@@ -116,19 +104,12 @@ export default class AdminForthAdapterTelegramOauth2 implements OAuth2Adapter {
       throw new Error("Telegram OAuth response does not include id_token");
     }
 
-    const claims = decodeJwtPayload<TelegramIdTokenClaims>(tokenData.id_token);
-
-    if (claims.iss !== TELEGRAM_ISSUER) {
-      throw new Error(`Telegram OAuth id_token has invalid issuer "${claims.iss}"`);
-    }
-
-    if (`${claims.aud}` !== `${this.clientID}`) {
-      throw new Error(`Telegram OAuth id_token has invalid audience "${claims.aud}"`);
-    }
-
-    if (claims.exp * 1000 < Date.now()) {
-      throw new Error("Telegram OAuth id_token is expired");
-    }
+    const { payload } = await jwtVerify(tokenData.id_token, TELEGRAM_JWKS, {
+      issuer: TELEGRAM_ISSUER,
+      audience: this.clientID,
+      algorithms: TELEGRAM_ID_TOKEN_ALGORITHMS,
+    });
+    const claims = payload as TelegramIdTokenClaims;
 
     return {
       provider: this.constructor.name,
