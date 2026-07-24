@@ -16,7 +16,6 @@
   "author": "DevForth (https://devforth.io)",
   "license": "MIT",
   "description": "AdminForth OAuth adapter for Telegram Login OIDC.",
-  "homepage": "https://adminforth.dev/docs/tutorial/Adapters/oauth-adapter-telegram/",
   "repository": {
     "type": "git",
     "url": "https://github.com/devforth/adminforth-oauth-adapter-telegram.git"
